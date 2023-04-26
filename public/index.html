@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan de Pagos</title>
+</head>
+
+<body>
+  <h1 style="text-align: center;">Plan de Pagos</h1>
+  <form class="form">
+    <table style="margin-left: auto;margin-right: auto;">
+      <tr>
+        <td>Cantidad de cuotas:</td>
+        <td><input name="numCuotas" type="text" placeholder="Nro. Cuotas" value="60"></td>
+        <td style="padding-left: 30px;">Plazo con tasa fija:</td>
+        <td><input name="nroCuotasFija" type="text" placeholder="Nro. Cuotas Tasa Fija" value="12"></td>
+      </tr>
+      <tr>
+        <td>Fecha de desembolso:</td>
+        <td><input name="fechaDesembolso" type="text" placeholder="dd/MM/yyyy" value="24/01/2023"></td>
+        <td style="padding-left: 30px;">Paga el dia:</td>
+        <td><input name="diaPago" type="text" placeholder="Dia de pago" value="15"></td>
+      </tr>
+      <tr>
+        <td>Interes fijo:</td>
+        <td><input name="interes1" type="text" placeholder="% de Interés fijo" value="13.99">%</td>
+        <td style="padding-left: 30px;">Interes variable (TRE+...):</td>
+        <td><input name="interes2" type="text" placeholder="% de Interés variable" value="16.02">%</td>
+      </tr>
+      <tr>
+        <td>% tasa de seguro de desgravamen:</td>
+        <td><input name="seguro" type="text" placeholder="% de seguro" value="1.5">%</td>
+      </tr>
+      <tr>
+        <td colspan="4">
+          <hr>
+        </td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>Monto</td>
+        <td style="padding-left: 30px;"><input id="monto" name="monto" type="text" placeholder="Monto Solicitado" value="40000"></td>
+        <td><span id="resCuotaMax"></span></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>Cuota Max.</td>
+        <td style="padding-left: 30px;"><input name="cuotaMax" type="text" placeholder="Monto de la cuota maxima" value=""></td>
+        <td><span id="resMonto"></span></td>
+      </tr>
+      <tr>
+        <td colspan="4" align="center">
+          <button type="submit">Generar Plan</button>
+        </td>
+      </tr>
+    </table>
+    <br>
+    <table id="tablaPP" border="1" style="margin-left: auto;margin-right: auto;">
+    </table>
+  </form>
+
+  <script>
+    const url = 'http://localhost:9090';
+    const fromEl = document.querySelector('.form');
+    fromEl.addEventListener('submit', event => {
+      // Se previene el Refresh
+      event.preventDefault();
+
+      // Se da formato a los datos
+      const formData = new FormData(fromEl);
+      let datosEntrada = Object.fromEntries(formData);
+      datosEntrada.numCuotas = datosEntrada.numCuotas / 1;
+      datosEntrada.nroCuotasFija = datosEntrada.nroCuotasFija / 1;
+      datosEntrada.diaPago = datosEntrada.diaPago / 1;
+      datosEntrada.interes1 = datosEntrada.interes1 / 100;
+      datosEntrada.interes2 = datosEntrada.interes2 / 100;
+      datosEntrada.seguro = datosEntrada.seguro / 100;
+      datosEntrada.monto = datosEntrada.monto / 1;
+      datosEntrada.cuotaMax = datosEntrada.cuotaMax / 1;
+
+      console.log(datosEntrada);
+
+      // Se limpian los datos en pantalla
+      document.getElementById("resCuotaMax").textContent = '';
+      document.getElementById("resMonto").textContent = '';
+      document.getElementById('tablaPP').innerHTML = "";
+
+      // Si se tiene una cuota máxima se genera el monto sugerido
+      if (datosEntrada.cuotaMax > 0) {
+        fetch(url + '/api/montoporcuota', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datosEntrada)
+          }).then(res => {
+            return res.json();
+          })
+          .then(data => {
+            document.getElementById("resMonto").textContent = 'Monto sugerido: ' + data.monto;
+            document.getElementById('monto').value = data.monto;
+            datosEntrada.monto = data.monto;
+
+            // Se obtiene el plan de pagos
+            fetch(url + '/api/planpago', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datosEntrada)
+              }).then(res => {
+                return res.json();
+              })
+              .then(data => {
+                let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
+                data.planPago.forEach(e => {
+                  tabla_datos += '<tr><td>' + e.cuota + '</td><td>' + e.fechaVenc + '</td><td>' + e.saldoCapital + '</td><td>' + e.capital + '</td><td>' + e.interes + '</td><td>' + e.capitalMasInt + '</td><td>' + e.seguro + '</td><td>' + e.cuotaFinal + '</td></tr>';
+                });
+                document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
+              })
+              .catch(error => {
+                console.log(error);
+                document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
+              });
+          })
+          .catch(error => {
+            document.getElementById("resMonto").textContent = 'Error: ' + error;
+          });
+      } else if (datosEntrada.monto > 0) {
+        //Si no se tiene una cuota máxima se genera el plan de pagos con el monto
+        // Se obtiene la cuota más alta
+        fetch(url + '/api/cuotamayor', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datosEntrada)
+          }).then(res => {
+            return res.json();
+          })
+          .then(data => {
+            document.getElementById("resCuotaMax").textContent = 'Cuota mayor: ' + data.cuotaMax;
+          })
+          .catch(error => {
+            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
+          });
+
+        // Se obtiene el plan de pagos
+        fetch(url + '/api/planpago', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datosEntrada)
+          }).then(res => {
+            return res.json();
+          })
+          .then(data => {
+            let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
+            data.planPago.forEach(e => {
+              tabla_datos += '<tr><td>' + e.cuota + '</td><td>' + e.fechaVenc + '</td><td>' + e.saldoCapital + '</td><td>' + e.capital + '</td><td>' + e.interes + '</td><td>' + e.capitalMasInt + '</td><td>' + e.seguro + '</td><td>' + e.cuotaFinal + '</td></tr>';
+            });
+            document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
+          })
+          .catch(error => {
+            console.log(error);
+            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
+          });
+      }
+
+      // Si se indicó un monto se genera el plan de pagos
+
+      if (datosEntrada.monto > 0) {
+
+      }
+
+
+
+
+
+
+
+
+    });
+  </script>
+</body>
+
+</html>
