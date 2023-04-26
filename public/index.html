@@ -63,7 +63,7 @@
   </form>
 
   <script>
-    const url = 'http://localhost:9090';
+    const url = 'https://planpagostest.up.railway.app'; // 'http://localhost:9090';
     const fromEl = document.querySelector('.form');
     fromEl.addEventListener('submit', event => {
       // Se previene el Refresh
@@ -170,20 +170,6 @@
             document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
           });
       }
-
-      // Si se indicó un monto se genera el plan de pagos
-
-      if (datosEntrada.monto > 0) {
-
-      }
-
-
-
-
-
-
-
-
     });
   </script>
 </body>
