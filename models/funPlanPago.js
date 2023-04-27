@@ -131,7 +131,10 @@ const planPagos = (v_montoIni, v_numCuotaIni, v_num_cuotas, v_int_anual, v_monto
     let v_saldo = v_montoIni;
     for (numCuota = v_numCuotaIni; numCuota <= v_num_cuotas; numCuota++) {
         const interes = Math.round(v_diasCobro[numCuota - 1] * v_int_dia * v_saldo * 100) / 100;
-        const capital = (numCuota === 1 & v_abonarCuota1 === false) || v_monto_cuota < interes ? 0 : Math.round((v_monto_cuota - interes) * 100) / 100;
+        let capital = (numCuota === 1 & v_abonarCuota1 === false) || v_monto_cuota < interes ? 0 : Math.round((v_monto_cuota - interes) * 100) / 100;
+        if (capital > v_saldo) {
+            capital = v_saldo;
+        }
         const saldo_ant = v_saldo;
         const saldo_nue = Math.round((saldo_ant - capital) * 100) / 100;
         v_saldo = saldo_nue;
@@ -147,15 +150,27 @@ const saldoUltCuota = (v_montoIni, v_numCuotaIni, v_num_cuotas, v_int_anual, v_m
     const v_int_dia = v_int_anual / 360;
     let resultado = 0;
     let v_saldo = v_montoIni;
+
+    // console.log('v_numCuotaIni', v_numCuotaIni, 'v_num_cuotas', v_num_cuotas, 'v_montoIni', v_montoIni, 'v_monto_cuota', v_monto_cuota);
     for (numCuota = v_numCuotaIni; numCuota <= v_num_cuotas; numCuota++) {
         const interes = Math.round(v_diasCobro[numCuota - 1] * v_int_dia * v_saldo * 100) / 100;
-        const capital = numCuota === 1 & v_abonarCuota1 === false ? 0 : Math.round((v_monto_cuota - interes) * 100) / 100;
+        let capital = numCuota == 1 & v_abonarCuota1 == false ? 0 : Math.round((v_monto_cuota - interes) * 100) / 100;
+        if (capital < 0) {
+            capital = 0;
+        }
+        // let capital = (numCuota === 1 & v_abonarCuota1 === false) || v_monto_cuota < interes ? 0 : Math.round((v_monto_cuota - interes) * 100) / 100;
+        // if (capital > v_saldo) {
+        //     capital = v_saldo;
+        // }
         const saldo_ant = v_saldo;
         const saldo_nue = Math.round((saldo_ant - capital) * 100) / 100;
         v_saldo = saldo_nue;
-        if (numCuota === v_num_cuotas) {
+        if (numCuota == v_num_cuotas) {
             resultado = saldo_nue;
         }
+        // if (numCuota >= v_num_cuotas - 5) { // || numCuota <= 8
+        //     console.log('cuo:', numCuota, 'interes', interes, 'capital', capital, 'saldo_ant', saldo_ant, 'saldo_nue', saldo_nue);
+        // }
     }
     return resultado;
 };
@@ -174,7 +189,8 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
     // console.log('v_num_cuotas', v_num_cuotas);
 
     // Cuota inicial
-    const v_cuo_0 = cuotaMensualBase(v_montoIni, v_num_cuotas - 1, v_int_anual);
+    // const v_cuo_0 = cuotaMensualBase(v_montoIni, v_num_cuotas - 1, v_int_anual);
+    const v_cuo_0 = cuotaMensualBase(v_montoIni, v_num_cuotas, v_int_anual);
     const v_ult_0 = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_cuo_0, v_abonarCuota1, v_diasCobro);
     // console.log('v_cuo_0:', v_cuo_0, 'v_ult_0:', v_ult_0);
 
@@ -198,22 +214,25 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
     let v_decremento_bin = Math.round(v_cuo_0 * v_binCuota_porcentIntervalo * 100) / 100;
     let v_cuota_dec = v_cuota_base;
     let v_ultSaldo_dec = v_ultSaldo_base;
-    // console.log('Antes: v_decremento_bin:', v_decremento_bin, 'v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
-    if (v_decremento_bin > (v_cuota_base / 50) & v_int_anual > 0.50) {
-        v_decremento_bin = Math.round((v_cuota_base / 50) * 100) / 100;
-    }
-    // console.log('Despues: v_decremento_bin:', v_decremento_bin, 'v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
-
-    if (v_ultSaldo_dec < 0) {
-        numIter = 0;
-        while (v_ultSaldo_dec < 0 && v_cuota_dec > 0 && numIter < v_limiteIteraciones) { //&& v_cuota_dec > v_cuo_0 * 0.5
-            v_cuota_dec = Math.round((v_cuota_dec - v_decremento_bin) * 100) / 100;
-            v_ultSaldo_dec = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_cuota_dec, v_abonarCuota1, v_diasCobro);
-            // console.log(numIter, ': v_ultSaldo_dec', v_ultSaldo_dec, 'v_cuota_dec', v_cuota_dec);
-            numIter = numIter + 1;
+    /*
+        console.log('Antes: v_decremento_bin:', v_decremento_bin, 'v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
+        if (v_decremento_bin > (v_cuota_base / 50) & v_int_anual > 0.50) {
+            v_decremento_bin = Math.round((v_cuota_base / 50) * 100) / 100;
         }
-    }
-    // console.log('v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
+        console.log('Despues: v_decremento_bin:', v_decremento_bin, 'v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
+
+        if (v_ultSaldo_dec < 0) {
+            numIter = 0;
+            while (v_ultSaldo_dec < 0 && v_cuota_dec > 0 && numIter < v_limiteIteraciones) { //&& v_cuota_dec > v_cuo_0 * 0.5
+                v_cuota_dec = Math.round((v_cuota_dec - v_decremento_bin) * 100) / 100;
+                v_ultSaldo_dec = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_cuota_dec, v_abonarCuota1, v_diasCobro);
+                console.log(numIter, ': v_ultSaldo_dec', v_ultSaldo_dec, 'v_cuota_dec', v_cuota_dec);
+                numIter = numIter + 1;
+            }
+        }
+        console.log('v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
+    */
+    v_cuota_dec = 0.01;
 
     // Se realiza la búsqueda binaria para determinar la cuota correcta
     let aux_intervalo = Math.round(v_cuota_base - v_cuota_dec);
@@ -223,8 +242,10 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
 
     let aux_cuo = v_cuota_dec;
     numIter = 0;
-    while (aux_intervalo > v_binCuota_precision && aux_intervalo > 0 && aux_cuo > 0 && numIter < v_limiteIteraciones) {
-        aux_intervalo = Math.round(((v_cuota_base - v_cuota_dec) / 2) * 100) / 100;
+
+    while (aux_intervalo >= v_binCuota_precision && aux_intervalo > 0 && aux_cuo > 0 && numIter < v_limiteIteraciones) {
+        // aux_intervalo = Math.round(((v_cuota_base - v_cuota_dec) / 2) * 100) / 100;
+        aux_intervalo = Math.round(((v_cuota_base - v_cuota_dec) / 3) * 100) / 100;
         aux_cuo = Math.round((v_cuota_dec + aux_intervalo) * 100) / 100;
         const aux_ult = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, aux_cuo, v_abonarCuota1, v_diasCobro);
         v_cuota_base = aux_ult < 0 ? aux_cuo : v_cuota_base;
@@ -234,6 +255,7 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
         numIter = numIter + 1;
         // console.log('inter:', aux_intervalo, 'cuo_dec:', v_cuota_dec, 'cuo_base:', v_cuota_base, ' ; ult_dec:', v_ultSaldo_dec, 'ult_base:', v_ultSaldo_base);
     }
+    // console.log('resultado final', v_cuota_dec);
     return v_cuota_dec;
 };
 
@@ -346,13 +368,15 @@ const generaPlanPagos_base = (
     // console.log('--v_fechaRevTasa', v_fechaRevTasa);
 
     if (nroCuotaTransicion > 1) {
-        if (nroCuotaTransicion <= v_numCuotas) {
+        if (nroCuotaTransicion <= v_numCuotas & v_nroCuotasFija < v_numCuotas) {
             // console.log('--aplica los 2 PP');
             // Aplicar los 2 Planes de pago
 
             // Plan de pagos 1 (si corresponde)
+            // console.log('--------------- INICIA Primer plan de pagos ---------------');
             const cuota1 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes1, abonarCapitalCuota1, diasCobro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
             const pp1 = planPagos(v_monto, 1, v_numCuotas, v_interes1, cuota1, abonarCapitalCuota1, diasCobro);
+            // console.log('--------------- TERMINA Primer plan de pagos ---------------');
 
             // Cuota de transición
             const tra = construccionCuotaTransicion(nroCuotaTransicion, v_numCuotas, diasCobro, fechasPago, v_fechaRevTasa, v_interes1, v_interes2, pp1);

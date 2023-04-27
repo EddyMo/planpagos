@@ -63,7 +63,9 @@
   </form>
 
   <script>
-    const url = 'https://planpagostest.up.railway.app'; // 'http://localhost:9090';
+    const url = 'https://planpagostest.up.railway.app'; //
+    // const url = 'http://localhost:9090';
+
     const fromEl = document.querySelector('.form');
     fromEl.addEventListener('submit', event => {
       // Se previene el Refresh
@@ -130,23 +132,23 @@
             document.getElementById("resMonto").textContent = 'Error: ' + error;
           });
       } else if (datosEntrada.monto > 0) {
-        //Si no se tiene una cuota máxima se genera el plan de pagos con el monto
-        // Se obtiene la cuota más alta
-        fetch(url + '/api/cuotamayor', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(datosEntrada)
-          }).then(res => {
-            return res.json();
-          })
-          .then(data => {
-            document.getElementById("resCuotaMax").textContent = 'Cuota mayor: ' + data.cuotaMax;
-          })
-          .catch(error => {
-            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
-          });
+        // //Si no se tiene una cuota máxima se genera el plan de pagos con el monto
+        // // Se obtiene la cuota más alta
+        // fetch(url + '/api/cuotamayor', {
+        //     method: 'POST',
+        //     headers: {
+        //       'Content-Type': 'application/json'
+        //     },
+        //     body: JSON.stringify(datosEntrada)
+        //   }).then(res => {
+        //     return res.json();
+        //   })
+        //   .then(data => {
+        //     document.getElementById("resCuotaMax").textContent = 'Cuota mayor: ' + data.cuotaMax;
+        //   })
+        //   .catch(error => {
+        //     document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
+        //   });
 
         // Se obtiene el plan de pagos
         fetch(url + '/api/planpago', {
