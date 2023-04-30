@@ -1,3 +1,23 @@
+// Identificación de parámetros
+const generaParametros = (v_param, v_fechaDesembolso, v_nroCuotasFija) => {
+
+    const v_fechaIni = new Date(v_fechaDesembolso.split('/')[2], v_fechaDesembolso.split('/')[1] - 1, v_fechaDesembolso.split('/')[0]);
+    const v_fechaRevTasa = new Date(v_fechaIni.valueOf());
+    v_fechaRevTasa.setDate(v_fechaRevTasa.getDate() + (v_nroCuotasFija * 30));
+    const resultado = {
+        fechaIni: v_fechaIni,
+        fechaRevTasa: v_fechaRevTasa,
+        feriados: v_param.feriados,
+        limiteIteraciones: v_param.limiteIteraciones,
+        binCuota_precision: v_param.binCuota_precision,
+        binCuota_porcentIntervalo: v_param.binCuota_porcentIntervalo,
+        binMonto_presicion: v_param.binMonto_presicion,
+        binMonto_porcentIntervalo: v_param.binMonto_porcentIntervalo
+    };
+    return resultado;
+};
+
+
 // ------------- Identificación de la lista de feriados ------------
 const generarListaFeriados = (v_fechaBase, v_numCuotas, v_diasFeriado) => {
     const numAnios = Math.ceil(v_numCuotas / 12);
@@ -177,7 +197,9 @@ const saldoUltCuota = (v_montoIni, v_numCuotaIni, v_num_cuotas, v_int_anual, v_m
 
 
 // ------------- Identificación de la cuota mensual correcta -------------
-const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_abonarCuota1, v_diasCobro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo) => { // (v_montoIni, v_numCuotaIni, v_num_cuotas, v_int_anual, v_abonarCuota1)
+const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_abonarCuota1, v_diasCobro,
+    v_param //v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
+) => {
     // Identificación del número de cuotas
     v_num_cuotas = v_numCuotasTotal - v_numCuotaIni + 1;
 
@@ -189,19 +211,18 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
     // console.log('v_num_cuotas', v_num_cuotas);
 
     // Cuota inicial
-    // const v_cuo_0 = cuotaMensualBase(v_montoIni, v_num_cuotas - 1, v_int_anual);
     const v_cuo_0 = cuotaMensualBase(v_montoIni, v_num_cuotas, v_int_anual);
     const v_ult_0 = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_cuo_0, v_abonarCuota1, v_diasCobro);
     // console.log('v_cuo_0:', v_cuo_0, 'v_ult_0:', v_ult_0);
 
     // Se verifica que se inicia en un saldo negativo (de la última cuota)
-    const v_incremento_base = Math.round(v_cuo_0 * v_binCuota_porcentIntervalo * 100) / 100;
+    const v_incremento_base = Math.round(v_cuo_0 * v_param.binCuota_porcentIntervalo * 100) / 100; //v_binCuota_porcentIntervalo
     let v_cuota_base = v_cuo_0;
     let v_ultSaldo_base = v_ult_0;
     let numIter = 0;
     if (v_ultSaldo_base > 0) {
         numIter = 0;
-        while (v_ultSaldo_base > 0 && v_cuota_base > 0 && numIter < v_limiteIteraciones) { //&& v_cuota_base < v_cuo_0 * 1.5
+        while (v_ultSaldo_base > 0 && v_cuota_base > 0 && numIter < v_param.limiteIteraciones) { //&& v_cuota_base < v_cuo_0 * 1.5 // v_limiteIteraciones
             v_cuota_base = Math.round((v_cuota_base + v_incremento_base) * 100) / 100;
             v_ultSaldo_base = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_cuota_base, v_abonarCuota1, v_diasCobro);
             numIter = numIter + 1;
@@ -211,27 +232,9 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
 
     // Se identifica el rango para una búsqueda binaria
     // console.log('----------Se identifica el rango para una búsqueda binaria');
-    let v_decremento_bin = Math.round(v_cuo_0 * v_binCuota_porcentIntervalo * 100) / 100;
+    let v_decremento_bin = Math.round(v_cuo_0 * v_param.binCuota_porcentIntervalo * 100) / 100; //v_binCuota_porcentIntervalo
     let v_cuota_dec = v_cuota_base;
     let v_ultSaldo_dec = v_ultSaldo_base;
-    /*
-        console.log('Antes: v_decremento_bin:', v_decremento_bin, 'v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
-        if (v_decremento_bin > (v_cuota_base / 50) & v_int_anual > 0.50) {
-            v_decremento_bin = Math.round((v_cuota_base / 50) * 100) / 100;
-        }
-        console.log('Despues: v_decremento_bin:', v_decremento_bin, 'v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
-
-        if (v_ultSaldo_dec < 0) {
-            numIter = 0;
-            while (v_ultSaldo_dec < 0 && v_cuota_dec > 0 && numIter < v_limiteIteraciones) { //&& v_cuota_dec > v_cuo_0 * 0.5
-                v_cuota_dec = Math.round((v_cuota_dec - v_decremento_bin) * 100) / 100;
-                v_ultSaldo_dec = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, v_cuota_dec, v_abonarCuota1, v_diasCobro);
-                console.log(numIter, ': v_ultSaldo_dec', v_ultSaldo_dec, 'v_cuota_dec', v_cuota_dec);
-                numIter = numIter + 1;
-            }
-        }
-        console.log('v_cuota_dec:', v_cuota_dec, 'v_ultSaldo_dec:', v_ultSaldo_dec, 'numIter', numIter);
-    */
     v_cuota_dec = 0.01;
 
     // Se realiza la búsqueda binaria para determinar la cuota correcta
@@ -243,8 +246,7 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
     let aux_cuo = v_cuota_dec;
     numIter = 0;
 
-    while (aux_intervalo >= v_binCuota_precision && aux_intervalo > 0 && aux_cuo > 0 && numIter < v_limiteIteraciones) {
-        // aux_intervalo = Math.round(((v_cuota_base - v_cuota_dec) / 2) * 100) / 100;
+    while (aux_intervalo >= v_param.binCuota_precision && aux_intervalo > 0 && aux_cuo > 0 && numIter < v_param.limiteIteraciones) { //v_limiteIteraciones //v_binCuota_precision
         aux_intervalo = Math.round(((v_cuota_base - v_cuota_dec) / 3) * 100) / 100;
         aux_cuo = Math.round((v_cuota_dec + aux_intervalo) * 100) / 100;
         const aux_ult = saldoUltCuota(v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_anual, aux_cuo, v_abonarCuota1, v_diasCobro);
@@ -303,30 +305,31 @@ const construccionCuotaTransicion = (v_nroCuotaTransicion, v_numCuotasTotal, v_d
 
 
 // ------------- Generacion del plan de pagos -------------
-
 const generaPlanPagos = (
-    v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro,
-    v_monto
+    //v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro, v_monto,
+    v_input, p_param
 ) => {
-    // Identificación de parámetros a partir de las variables de entrada
-    const v_fechaIni = new Date(v_fechaDesembolso.split('/')[2], v_fechaDesembolso.split('/')[1] - 1, v_fechaDesembolso.split('/')[0]);
+    // console.log('p_param en generaPlanPagos', p_param);
+    v_numCuotas = v_input.numCuotas;
+    v_nroCuotasFija = v_input.nroCuotasFija;
+    v_fechaDesembolso = v_input.fechaDesembolso;
+    v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    v_sepelio = v_input.sepelio;
+    v_monto = v_input.monto;
 
-    v_fechaRevTasa = new Date(v_fechaIni.valueOf());
-    v_fechaRevTasa.setDate(v_fechaRevTasa.getDate() + (v_nroCuotasFija * 30));
-    v_feriados = ['01/01', '22/01', '01/05', '21/06', '02/11', '25/12'];
-    const v_limiteIteraciones = 100;
-    const v_binCuota_precision = 0.01;
-    const v_binCuota_porcentIntervalo = 0.10;
-    // const v_binCuota_porcentIntervalo = 0.01;
+    // Parámetros
+    const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
 
     // Llamada a la función base para generar el plan de pagos
     const v_pp = generaPlanPagos_base(
-        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro,
-        v_monto,
-        v_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
+        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+        v_monto, v_param
+        //_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
     );
 
-    // console.log('v_pp', v_pp);
     // conversión del plan de pagos en un objeto Json
     let res_array = [];
     for (i = 0; i < v_pp.length; i++) {
@@ -341,25 +344,28 @@ const generaPlanPagos = (
             cuotaFinal: v_pp[i][6]
         });
     }
+    // Adicion de totales
+    const v_totales = totalesPlanPagos(v_pp);
+    res_array.push(v_totales);
 
     return JSON.parse(JSON.stringify({ planPago: res_array }));
 
 };
 
 const generaPlanPagos_base = (
-    v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro,
-    v_monto,
-    v_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
+    v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+    v_monto, v_param
+    //v_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
 ) => {
     // Se construye el primer plan de pagos
     let resultado = [];
-    p_fechaIni = new Date(v_fechaIni.valueOf());
+    p_fechaIni = new Date(v_param.fechaIni.valueOf()); //p_fechaIni = new Date( v_fechaIni.valueOf());
 
     // Preparación de las variables del proceso
-    const fechasFeriado = generarListaFeriados(p_fechaIni, v_numCuotas, v_feriados);
+    const fechasFeriado = generarListaFeriados(p_fechaIni, v_numCuotas, v_param.feriados); //  v_feriados
     const fechasPago = identificarFechasPago(p_fechaIni, v_numCuotas, fechasFeriado, v_diaPago);
     const diasCobro = identificarDiasCobro(p_fechaIni, fechasPago, v_numCuotas);
-    const nroCuotaTransicion = identificarCuotaTransicion(v_nroCuotasFija, v_numCuotas, fechasPago, v_fechaRevTasa);
+    const nroCuotaTransicion = identificarCuotaTransicion(v_nroCuotasFija, v_numCuotas, fechasPago, v_param.fechaRevTasa); //v_fechaRevTasa
     // const abonarCapitalCuota1 = identificarAbonoCuota1(nroCuotaTransicion, v_nroCuotasFija, v_numCuotas);
     const abonarCapitalCuota1 = identificarAbonoCuota1(p_fechaIni, fechasPago);
 
@@ -374,19 +380,19 @@ const generaPlanPagos_base = (
 
             // Plan de pagos 1 (si corresponde)
             // console.log('--------------- INICIA Primer plan de pagos ---------------');
-            const cuota1 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes1, abonarCapitalCuota1, diasCobro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+            const cuota1 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes1, abonarCapitalCuota1, diasCobro, v_param); // v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo //v_param.limiteIteraciones, v_param.binCuota_precision, v_param.binCuota_porcentIntervalo
             const pp1 = planPagos(v_monto, 1, v_numCuotas, v_interes1, cuota1, abonarCapitalCuota1, diasCobro);
             // console.log('--------------- TERMINA Primer plan de pagos ---------------');
 
             // Cuota de transición
-            const tra = construccionCuotaTransicion(nroCuotaTransicion, v_numCuotas, diasCobro, fechasPago, v_fechaRevTasa, v_interes1, v_interes2, pp1);
+            const tra = construccionCuotaTransicion(nroCuotaTransicion, v_numCuotas, diasCobro, fechasPago, v_param.fechaRevTasa, v_interes1, v_interes2, pp1); //  v_fechaRevTasa
             // console.log('tra', tra);
 
             // Plan de pagos 2
             if (nroCuotaTransicion < v_numCuotas) {
                 // console.log('----------- Inicio de la determinación de la Cuota Base 2 --------------');
                 // console.log('monto =', tra[4], ' ; nroCuotaIni =', nroCuotaTransicion + 1, ' ; v_numCuotas =', v_numCuotas, ' ; v_interes2 =', v_interes2, ' ; v_limiteIteraciones =', v_limiteIteraciones, ' ; v_binCuota_precision =', v_binCuota_precision, ' ; v_binCuota_porcentIntervalo =', v_binCuota_porcentIntervalo);
-                const cuota2 = determinacionCuota(tra[4], nroCuotaTransicion + 1, v_numCuotas, v_interes2, true, diasCobro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+                const cuota2 = determinacionCuota(tra[4], nroCuotaTransicion + 1, v_numCuotas, v_interes2, true, diasCobro, v_param); // v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo //v_param.limiteIteraciones, v_param.binCuota_precision, v_param.binCuota_porcentIntervalo
                 // console.log('cuota2 =', cuota2);
                 // console.log('----------- Fin de la determinación de la Cuota Base 2 --------------');
 
@@ -401,14 +407,14 @@ const generaPlanPagos_base = (
         } else {
             // console.log('--solo aplica el PP1');
             // Aplicar solo el Plan de pagos 1
-            const cuota1 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes1, abonarCapitalCuota1, diasCobro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+            const cuota1 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes1, abonarCapitalCuota1, diasCobro, v_param); //v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo //v_param.limiteIteraciones, v_param.binCuota_precision, v_param.binCuota_porcentIntervalo
             const pp1 = planPagos(v_monto, 1, v_numCuotas, v_interes1, cuota1, abonarCapitalCuota1, diasCobro);
             resultado = pp1;
         }
     } else {
         // console.log('--solo aplica el PP2');
         // Solo Plan de pagos 2
-        const cuota2 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes2, abonarCapitalCuota1, diasCobro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+        const cuota2 = determinacionCuota(v_monto, 1, v_numCuotas, v_interes2, abonarCapitalCuota1, diasCobro, v_param); //v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo //v_param.limiteIteraciones, v_param.binCuota_precision, v_param.binCuota_porcentIntervalo
         const pp2 = planPagos(v_monto, 1, v_numCuotas, v_interes2, cuota2, abonarCapitalCuota1, diasCobro);
         resultado = pp2;
     }
@@ -425,33 +431,35 @@ const generaPlanPagos_base = (
         const interes = resultado[i][1];
         const capital = resultado[i][2];
         const saldoAnt = resultado[i][3];
-        const seguro = Math.round(numDiasSiguiente * tasaSeguroDia * saldoAnt * 100) / 100;
+        const seguro = Math.round(((numDiasSiguiente * tasaSeguroDia * saldoAnt) + ((i < resultado.length - 1) ? v_sepelio : 0)) * 100) / 100;
         const cuotaFinal = Math.round((interes + capital + seguro) * 100) / 100;
         resultado[i] = resultado[i].concat(seguro).concat(cuotaFinal).concat(fechasPago[i]);
     }
-
     return resultado;
 };
 
 const identificarCuotaMasAlta = (
-    v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro,
-    v_monto) => {
-    // Identificación de parámetros a partir de las variables de entrada
-    v_fechaIni = new Date(v_fechaDesembolso.split('/')[2], v_fechaDesembolso.split('/')[1] - 1, v_fechaDesembolso.split('/')[0]);
-    v_fechaRevTasa = new Date(v_fechaIni.valueOf());
-    v_fechaRevTasa.setDate(v_fechaRevTasa.getDate() + (v_nroCuotasFija * 30));
-    v_feriados = ['01/01', '22/01', '01/05', '21/06', '02/11', '25/12'];
-    const v_limiteIteraciones = 100;
-    const v_binCuota_precision = 0.01;
-    const v_binCuota_porcentIntervalo = 0.10;
-    // const v_binMonto_presicion = 0.01;
-    // const v_binMonto_porcentIntervalo = 0.10;
+    //v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro, v_monto, 
+    v_input, p_param) => {
+    // console.log('p_param en identificarCuotaMasAlta', p_param);
+    v_numCuotas = v_input.numCuotas;
+    v_nroCuotasFija = v_input.nroCuotasFija;
+    v_fechaDesembolso = v_input.fechaDesembolso;
+    v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    v_sepelio = v_input.sepelio;
+    v_monto = v_input.monto;
+
+    // Parámetros
+    const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
 
     // A partir de los datos de entrada se genera el plan de pagos
     const v_pp = generaPlanPagos_base(
-        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro,
-        v_monto,
-        v_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+        v_monto, v_param //, v_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
+    );
 
     // Con el plan de pagos se identifica la cuota más alta
     const resultado = identificarCuotaMasAlta_base(v_pp);
@@ -469,36 +477,71 @@ const identificarCuotaMasAlta_base = (v_pp) => {
     return resultado;
 };
 
-
-
-const cuotaMasAlta = (v_monto, v_numCuotas, v_nroCuotasFija, v_fechaIni, v_fechaRevTasa, v_diaPago, v_feriados, v_interes1, v_interes2, v_seguro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo) => {
-    p_fechaIni = new Date(v_fechaIni.valueOf());
+const cuotaMasAlta = (v_monto, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+    v_param
+) => {
+    p_fechaIni = new Date(v_param.fechaIni.valueOf()); // v_fechaIni.valueOf()
     const pp = generaPlanPagos_base(
-        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro,
-        v_monto,
-        p_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+        v_monto, v_param
+        //p_fechaIni, v_fechaRevTasa, v_feriados, v_param //v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
+    );
     const cuo = identificarCuotaMasAlta_base(pp);
     return cuo;
 };
 
-const buscarMontoPorCuota = (
-    v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro,
-    v_cuotaMax
-) => {
-    // console.log('v_fechaDesembolso', v_fechaDesembolso);
-    // Identificación de parámetros a partir de las variables de entrada
-    const v_fechaIni = new Date(v_fechaDesembolso.split('/')[2], v_fechaDesembolso.split('/')[1] - 1, v_fechaDesembolso.split('/')[0]);
-    // console.log('1.- v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaDesembolso =', v_fechaDesembolso, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
+const totalesPlanPagos = (v_pp) => {
+    // Variables de datos acumulados
+    let acum_capital = 0;
+    let acum_interes = 0;
+    let acum_capitalMasInt = 0;
+    let acum_seguro = 0;
+    let acum_cuotaFinal = 0;
 
-    const v_fechaRevTasa = new Date(v_fechaIni.valueOf());
-    v_fechaRevTasa.setDate(v_fechaRevTasa.getDate() + (v_nroCuotasFija * 30));
-    const v_feriados = ['01/01', '22/01', '01/05', '21/06', '02/11', '25/12'];
-    const v_limiteIteraciones = 100;
-    const v_binCuota_precision = 0.01;
-    const v_binCuota_porcentIntervalo = 0.10;
-    const v_binMonto_presicion = 0.01;
-    const v_binMonto_porcentIntervalo = 0.10;
-    // console.log('2.- v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaRevTasa =', v_fechaRevTasa, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
+    for (i = 0; i < v_pp.length; i++) {
+        acum_capital += v_pp[i][2];
+        acum_interes += v_pp[i][1];
+        acum_capitalMasInt += Math.round((v_pp[i][2] + v_pp[i][1]) * 100) / 100;
+        acum_seguro += v_pp[i][5];
+        acum_cuotaFinal += v_pp[i][6];
+    }
+    const resultado = {
+        cuota: '',
+        fechaVenc: '',
+        saldoCapital: '',
+        capital: Math.round(acum_capital * 100) / 100,
+        interes: Math.round(acum_interes * 100) / 100,
+        capitalMasInt: Math.round(acum_capitalMasInt * 100) / 100,
+        seguro: Math.round(acum_seguro * 100) / 100,
+        cuotaFinal: Math.round(acum_cuotaFinal * 100) / 100
+    }
+    return resultado;
+};
+
+const buscarMontoPorCuota = (
+    //v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro, v_cuotaMax, 
+    v_input, p_param
+) => {
+    // console.log('p_param en buscarMontoPorCuota', p_param);
+    v_numCuotas = v_input.numCuotas;
+    v_nroCuotasFija = v_input.nroCuotasFija;
+    v_fechaDesembolso = v_input.fechaDesembolso;
+    v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    v_sepelio = v_input.sepelio;
+    v_cuotaMax = v_input.cuotaMax;
+
+    // feriados: v_param.feriados,
+    //     limiteIteraciones: v_param.limiteIteraciones,
+    //     binCuota_precision: v_param.binCuota_precision,
+    //     binCuota_porcentIntervalo: v_param.binCuota_porcentIntervalo,
+    //     binMonto_presicion: v_param.binMonto_presicion,
+    //     binMonto_porcentIntervalo: v_param.binMonto_porcentIntervalo
+
+    // Parámetros
+    const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
 
     // // Se identifica el monto de que conduce a una cuota que no supere la v_cuotaMax
     // console.clear();
@@ -506,26 +549,23 @@ const buscarMontoPorCuota = (
 
     // Monto base
     // console.log('v_fechaIni antes del monto base', v_fechaIni);
-    // console.log('3.- v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaRevTasa =', v_fechaRevTasa, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
     const v_monto_0 = v_cuotaMax * v_numCuotas;
-    const v_cuota_0 = cuotaMasAlta(v_monto_0, v_numCuotas, v_nroCuotasFija, v_fechaIni, v_fechaRevTasa, v_diaPago, v_feriados, v_interes1, v_interes2, v_seguro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+    const v_cuota_0 = cuotaMasAlta(v_monto_0, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio, v_param);
     // console.log('v_fechaIni despues del monto base', v_fechaIni);
-    // console.log('4.- v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaRevTasa =', v_fechaRevTasa, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
 
     // Se verifica que se inicia en una cuota mayor a la cuota máxima definida
     // console.log('Se verifica que se inicia en una cuota mayor a la cuota máxima definida');
-    const v_incremento_base = Math.round(v_monto_0 * v_binMonto_porcentIntervalo * 100) / 100;
+    const v_incremento_base = Math.round(v_monto_0 * p_param.binMonto_porcentIntervalo * 100) / 100; // v_binMonto_porcentIntervalo
     let v_monto_base = v_monto_0;
     let v_cuota_base = v_cuota_0;
     let numIter = 0;
     if (v_cuota_base < v_cuotaMax) {
         numIter = 0;
-        while (v_cuota_base < v_cuotaMax && v_cuota_base > 0 && v_monto_base > 0 && numIter < v_limiteIteraciones) { //&& v_monto_base < v_monto_0 * 1.5
+        while (v_cuota_base < v_cuotaMax && v_cuota_base > 0 && v_monto_base > 0 && numIter < p_param.limiteIteraciones) { //&& v_monto_base < v_monto_0 * 1.5 // v_limiteIteraciones
             v_monto_base = Math.round((v_monto_base + v_incremento_base) * 100) / 100;
-            v_cuota_base = cuotaMasAlta(v_monto_base, v_numCuotas, v_nroCuotasFija, v_fechaIni, v_fechaRevTasa, v_diaPago, v_feriados, v_interes1, v_interes2, v_seguro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+            v_cuota_base = cuotaMasAlta(v_monto_base, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio, v_param);
             numIter = numIter + 1;
             // console.log('numIter:', numIter, 'v_monto_base:', v_monto_base, 'v_cuota_base:', v_cuota_base);
-            // console.log('5.- v_monto_base = ', v_monto_base, ' ; v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaRevTasa =', v_fechaRevTasa, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
 
         }
     }
@@ -533,61 +573,38 @@ const buscarMontoPorCuota = (
 
     // Se identifica el rango para una búsqueda binaria
     // console.log('Se identifica el rango para una búsqueda binaria');
-    const v_decremento_bin = Math.round(v_monto_base * v_binMonto_porcentIntervalo * 100) / 100;
+    const v_decremento_bin = Math.round(v_monto_base * p_param.binMonto_porcentIntervalo * 100) / 100; //v_binMonto_porcentIntervalo
     let v_monto_dec = v_monto_base;
     let v_cuota_dec = v_cuota_base;
     if (v_cuota_dec > v_cuotaMax) {
         numIter = 0;
-        while (v_cuota_dec > v_cuotaMax && v_cuota_dec > 0 && v_monto_dec > 0 && numIter < v_limiteIteraciones) { //&& v_cuota_dec > v_monto_0 * 0.5
+        while (v_cuota_dec > v_cuotaMax && v_cuota_dec > 0 && v_monto_dec > 0 && numIter < p_param.limiteIteraciones) { //&& v_cuota_dec > v_monto_0 * 0.5 //v_limiteIteraciones
             v_monto_dec = Math.round((v_monto_dec - v_decremento_bin) * 100) / 100;
-            v_cuota_dec = cuotaMasAlta(v_monto_dec, v_numCuotas, v_nroCuotasFija, v_fechaIni, v_fechaRevTasa, v_diaPago, v_feriados, v_interes1, v_interes2, v_seguro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+            v_cuota_dec = cuotaMasAlta(v_monto_dec, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio, v_param);
             numIter = numIter + 1;
             // console.log('numIter:', numIter, 'v_monto_dec:', v_monto_dec, 'v_cuota_dec:', v_cuota_dec);
-            // console.log('6.- v_monto_dec = ', v_monto_dec, ' ; v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaRevTasa =', v_fechaRevTasa, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
         }
     }
     // console.log('numIter:', numIter, 'v_monto_dec:', v_monto_dec, 'v_cuota_dec:', v_cuota_dec);
 
-    // // Se realiza la búsqueda binaria para determinar la cuota correcta
-    // console.log('Se realiza la búsqueda binaria para determinar la cuota correcta');
-    // console.log('-------------');
-    // console.log('v_numCuotas', v_numCuotas);
-    // console.log('v_nroCuotasFija', v_nroCuotasFija);
-    // console.log('v_fechaIni', v_fechaIni);
-    // console.log('v_fechaRevTasa', v_fechaRevTasa);
-    // console.log('v_diaPago', v_diaPago);
-    // console.log('v_feriados', v_feriados);
-    // console.log('v_interes1', v_interes1);
-    // console.log('v_interes2', v_interes2);
-    // console.log('v_seguro', v_seguro);
-    // // v_numCuotas, v_nroCuotasFija, v_fechaIni, v_fechaRevTasa, v_diaPago, v_feriados, v_interes1, v_interes2, v_seguro
-    // console.log('-------------');
-
     let aux_intervalo = Math.round(v_monto_base - v_cuota_dec);
-    if (aux_intervalo > v_binMonto_presicion) {
+    if (aux_intervalo > p_param.binMonto_presicion) { //v_binMonto_presicion
         let aux_monto = v_monto_dec;
         let aux_cuota = v_cuota_dec;
         numIter = 0;
-        while (aux_intervalo > v_binMonto_presicion && aux_monto > 0 && aux_cuota > 0 && numIter < v_limiteIteraciones) {
+        while (aux_intervalo > p_param.binMonto_presicion && aux_monto > 0 && aux_cuota > 0 && numIter < p_param.limiteIteraciones) { //v_limiteIteraciones //v_binMonto_presicion
             aux_intervalo = Math.round(((v_monto_base - v_monto_dec) / 2) * 100) / 100;
             aux_monto = Math.round((v_monto_dec + aux_intervalo) * 100) / 100;
-            aux_cuota = cuotaMasAlta(aux_monto, v_numCuotas, v_nroCuotasFija, v_fechaIni, v_fechaRevTasa, v_diaPago, v_feriados, v_interes1, v_interes2, v_seguro, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo);
+            aux_cuota = cuotaMasAlta(aux_monto, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio, v_param); // v_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
             v_monto_base = aux_cuota > v_cuotaMax ? aux_monto : v_monto_base;
             v_cuota_base = aux_cuota > v_cuotaMax ? aux_cuota : v_cuota_base;
 
             v_monto_dec = aux_cuota <= v_cuotaMax ? aux_monto : v_monto_dec;
             v_cuota_dec = aux_cuota <= v_cuotaMax ? aux_cuota : v_cuota_dec;
             numIter = numIter + 1;
-            // console.log('numIter:', numIter, 'intervalo:', aux_intervalo, 'v_monto_dec:', v_monto_dec, 'v_cuota_dec:', v_cuota_dec, ' ; v_monto_base:', v_monto_base, 'v_cuota_base:', v_cuota_base);
-            // console.log('7.- v_monto_dec = ', v_monto_dec, ' ; v_numCuotas =', v_numCuotas, ' ; v_nroCuotasFija =', v_nroCuotasFija, ' ; v_fechaIni =', v_fechaIni, ' ; v_fechaRevTasa =', v_fechaRevTasa, ' ; v_diaPago =', v_diaPago, ' ; v_interes1 =', v_interes1, ' ; v_interes2 =', v_interes2, ' ; v_seguro =', v_seguro);
         }
     }
-    // console.log('numIter:', numIter, 'intervalo:', aux_intervalo, 'v_monto_dec:', v_monto_dec, 'v_cuota_dec:', v_cuota_dec, ' ; v_monto_base:', v_monto_base, 'v_cuota_base:', v_cuota_base);
-
-    //return v_monto_dec;
-    // return { monto: v_monto_dec };
     return JSON.parse(JSON.stringify({ monto: v_monto_dec }));
-
 };
 
 module.exports = {
@@ -595,4 +612,3 @@ module.exports = {
     identificarCuotaMasAlta,
     buscarMontoPorCuota
 };
-// module.exports = cuotaMasAlta;

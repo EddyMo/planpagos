@@ -14,25 +14,39 @@
     <table style="margin-left: auto;margin-right: auto;">
       <tr>
         <td>Cantidad de cuotas:</td>
-        <td><input name="numCuotas" type="text" placeholder="Nro. Cuotas" value="60"></td>
+        <td><input name="numCuotas" type="text" placeholder="Nro. Cuotas" value="72"></td>
         <td style="padding-left: 30px;">Plazo con tasa fija:</td>
         <td><input name="nroCuotasFija" type="text" placeholder="Nro. Cuotas Tasa Fija" value="12"></td>
       </tr>
       <tr>
         <td>Fecha de desembolso:</td>
-        <td><input name="fechaDesembolso" type="text" placeholder="dd/MM/yyyy" value="24/01/2023"></td>
+        <td><input name="fechaDesembolso" type="text" placeholder="dd/MM/yyyy" value="27/04/2023"></td>
         <td style="padding-left: 30px;">Paga el dia:</td>
-        <td><input name="diaPago" type="text" placeholder="Dia de pago" value="15"></td>
+        <td><input name="diaPago" type="text" placeholder="Dia de pago" value="2"></td>
       </tr>
       <tr>
         <td>Interes fijo:</td>
-        <td><input name="interes1" type="text" placeholder="% de Interés fijo" value="13.99">%</td>
+        <td><input name="interes1" type="text" placeholder="% de Interés fijo" value="15.99">%</td>
         <td style="padding-left: 30px;">Interes variable (TRE+...):</td>
-        <td><input name="interes2" type="text" placeholder="% de Interés variable" value="16.02">%</td>
+        <td><input name="interes2" type="text" placeholder="% de Interés variable" value="18.01">%</td>
       </tr>
       <tr>
-        <td>% tasa de seguro de desgravamen:</td>
+        <td>Seguro desgravamen:</td>
         <td><input name="seguro" type="text" placeholder="% de seguro" value="1.5">%</td>
+        <td style="padding-left: 30px;">Seguro de sepelio (Bs):</td>
+        <td><input name="sepelio" type="text" placeholder="Bs mensual  " value="7"></td>
+      </tr>
+      <tr>
+        <td>Con conyuge:</td>
+        <td>
+          <div>
+            <input type="radio" id="conyugeChoice1" name="conyuge" value="1" checked />
+            <label for="conyugeChoice1">No</label>
+
+            <input type="radio" id="conyugeChoice2" name="conyuge" value="2" />
+            <label for="conyugeChoice2">Si</label>
+          </div>
+        </td>
       </tr>
       <tr>
         <td colspan="4">
@@ -41,13 +55,13 @@
       </tr>
       <tr>
         <td></td>
-        <td>Monto</td>
-        <td style="padding-left: 30px;"><input id="monto" name="monto" type="text" placeholder="Monto Solicitado" value="40000"></td>
+        <td>Monto (Bs)</td>
+        <td style="padding-left: 30px;"><input id="monto" name="monto" type="text" placeholder="Monto Solicitado" value="50000"></td>
         <td><span id="resCuotaMax"></span></td>
       </tr>
       <tr>
         <td></td>
-        <td>Cuota Max.</td>
+        <td>Cuota Max. (Bs)</td>
         <td style="padding-left: 30px;"><input name="cuotaMax" type="text" placeholder="Monto de la cuota maxima" value=""></td>
         <td><span id="resMonto"></span></td>
       </tr>
@@ -74,16 +88,27 @@
       // Se da formato a los datos
       const formData = new FormData(fromEl);
       let datosEntrada = Object.fromEntries(formData);
-      datosEntrada.numCuotas = datosEntrada.numCuotas / 1;
-      datosEntrada.nroCuotasFija = datosEntrada.nroCuotasFija / 1;
-      datosEntrada.diaPago = datosEntrada.diaPago / 1;
-      datosEntrada.interes1 = datosEntrada.interes1 / 100;
-      datosEntrada.interes2 = datosEntrada.interes2 / 100;
-      datosEntrada.seguro = datosEntrada.seguro / 100;
-      datosEntrada.monto = datosEntrada.monto / 1;
-      datosEntrada.cuotaMax = datosEntrada.cuotaMax / 1;
 
-      console.log(datosEntrada);
+      valor_dato_conyuge = datosEntrada.conyuge;
+      const v_input = {
+        numCuotas: datosEntrada.numCuotas / 1,
+        nroCuotasFija: datosEntrada.nroCuotasFija / 1,
+        fechaDesembolso: datosEntrada.fechaDesembolso,
+        diaPago: datosEntrada.diaPago / 1,
+        interes1: datosEntrada.interes1 / 100,
+        interes2: datosEntrada.interes2 / 100,
+        seguro: datosEntrada.seguro * valor_dato_conyuge / 100,
+        sepelio: datosEntrada.sepelio * valor_dato_conyuge / 1,
+        monto: datosEntrada.monto / 1,
+        cuotaMax: datosEntrada.cuotaMax / 1
+      };
+      // console.log('valor_dato_conyuge', valor_dato_conyuge);
+      // console.log('v_input', v_input);
+
+      const datosParaWS = {
+        v_input //, p_param
+      };
+      // console.log(datosParaWS);
 
       // Se limpian los datos en pantalla
       document.getElementById("resCuotaMax").textContent = '';
@@ -91,20 +116,20 @@
       document.getElementById('tablaPP').innerHTML = "";
 
       // Si se tiene una cuota máxima se genera el monto sugerido
-      if (datosEntrada.cuotaMax > 0) {
+      if (datosParaWS.v_input.cuotaMax > 0) {
         fetch(url + '/api/montoporcuota', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(datosEntrada)
+            body: JSON.stringify(datosParaWS)
           }).then(res => {
             return res.json();
           })
           .then(data => {
             document.getElementById("resMonto").textContent = 'Monto sugerido: ' + data.monto;
             document.getElementById('monto').value = data.monto;
-            datosEntrada.monto = data.monto;
+            datosParaWS.v_input.monto = data.monto;
 
             // Se obtiene el plan de pagos
             fetch(url + '/api/planpago', {
@@ -112,7 +137,7 @@
                 headers: {
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(datosEntrada)
+                body: JSON.stringify(datosParaWS)
               }).then(res => {
                 return res.json();
               })
@@ -124,14 +149,14 @@
                 document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
               })
               .catch(error => {
-                console.log(error);
+                // console.log(error);
                 document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
               });
           })
           .catch(error => {
             document.getElementById("resMonto").textContent = 'Error: ' + error;
           });
-      } else if (datosEntrada.monto > 0) {
+      } else if (datosParaWS.v_input.monto > 0) {
         //Si no se tiene una cuota máxima se genera el plan de pagos con el monto
         // Se obtiene la cuota más alta
         fetch(url + '/api/cuotamayor', {
@@ -139,7 +164,7 @@
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(datosEntrada)
+            body: JSON.stringify(datosParaWS)
           }).then(res => {
             return res.json();
           })
@@ -156,7 +181,7 @@
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(datosEntrada)
+            body: JSON.stringify(datosParaWS)
           }).then(res => {
             return res.json();
           })
@@ -168,7 +193,7 @@
             document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
           })
           .catch(error => {
-            console.log(error);
+            // console.log(error);
             document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
           });
       }
