@@ -259,13 +259,13 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
         numIter = numIter + 1;
 
         aux_cuota_final = v_ultSaldo_dec >= efecto_1_centavo_en_capital ? v_cuota_base : v_cuota_dec;
-        console.log('inter:', aux_intervalo, ' ; cuo_dec:', v_cuota_dec, ' ; cuo_base:', v_cuota_base, ' ; ult_dec:', v_ultSaldo_dec, ' ; ult_base:', v_ultSaldo_base, ' ; aux_cuota_final:', aux_cuota_final);
+        // console.log('inter:', aux_intervalo, ' ; cuo_dec:', v_cuota_dec, ' ; cuo_base:', v_cuota_base, ' ; ult_dec:', v_ultSaldo_dec, ' ; ult_base:', v_ultSaldo_base, ' ; aux_cuota_final:', aux_cuota_final);
     }
     // console.log('resultado final', v_cuota_dec);
     // return v_cuota_dec;
 
-    console.log('efecto_1_centavo_en_capital', efecto_1_centavo_en_capital);
-    console.log('resultado final', aux_cuota_final);
+    // console.log('efecto_1_centavo_en_capital', efecto_1_centavo_en_capital);
+    // console.log('resultado final', aux_cuota_final);
     return aux_cuota_final;
 };
 
