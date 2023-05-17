@@ -244,6 +244,8 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
     // console.log('inter:', aux_intervalo, 'cuo_dec:', v_cuota_dec, 'cuo_base:', v_cuota_base, ' ; ult_dec:', v_ultSaldo_dec, 'ult_base:', v_ultSaldo_base);
 
     let aux_cuo = v_cuota_dec;
+    let aux_cuota_final = 0;
+    let efecto_1_centavo_en_capital = Math.round(v_num_cuotas) / 100;
     numIter = 0;
 
     while (aux_intervalo >= v_param.binCuota_precision && aux_intervalo > 0 && aux_cuo > 0 && numIter < v_param.limiteIteraciones) { //v_limiteIteraciones //v_binCuota_precision
@@ -255,10 +257,16 @@ const determinacionCuota = (v_montoIni, v_numCuotaIni, v_numCuotasTotal, v_int_a
         v_cuota_dec = aux_ult >= 0 ? aux_cuo : v_cuota_dec;
         v_ultSaldo_dec = aux_ult >= 0 ? aux_ult : v_ultSaldo_dec;
         numIter = numIter + 1;
-        // console.log('inter:', aux_intervalo, 'cuo_dec:', v_cuota_dec, 'cuo_base:', v_cuota_base, ' ; ult_dec:', v_ultSaldo_dec, 'ult_base:', v_ultSaldo_base);
+
+        aux_cuota_final = v_ultSaldo_dec >= efecto_1_centavo_en_capital ? v_cuota_base : v_cuota_dec;
+        console.log('inter:', aux_intervalo, ' ; cuo_dec:', v_cuota_dec, ' ; cuo_base:', v_cuota_base, ' ; ult_dec:', v_ultSaldo_dec, ' ; ult_base:', v_ultSaldo_base, ' ; aux_cuota_final:', aux_cuota_final);
     }
     // console.log('resultado final', v_cuota_dec);
-    return v_cuota_dec;
+    // return v_cuota_dec;
+
+    console.log('efecto_1_centavo_en_capital', efecto_1_centavo_en_capital);
+    console.log('resultado final', aux_cuota_final);
+    return aux_cuota_final;
 };
 
 
