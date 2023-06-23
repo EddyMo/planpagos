@@ -63,6 +63,7 @@ const teaPost = (req, res = response) => {
 module.exports = {
     montoPorCuotaPost,
     planCompletoPost,
+
     planPagoPost,
     planPagoTotalesPost,
     cuotaMayorPost,

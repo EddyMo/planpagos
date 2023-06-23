@@ -123,8 +123,8 @@
           },
           body: JSON.stringify(datosParaWS)
         }).then(res => {
-          // return res.json();
-          return;
+          return res.json();
+          // return;
         }).then(data => {
           // Cuotas del Plan de pagos
           let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
