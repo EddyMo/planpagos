@@ -14,27 +14,27 @@
     <table style="margin-left: auto;margin-right: auto;">
       <tr>
         <td>Cantidad de cuotas:</td>
-        <td><input name="numCuotas" type="text" placeholder="Nro. Cuotas" value="72"></td>
+        <td><input name="numCuotas" type="text" placeholder="Nro. Cuotas" value="72" style="width: 80px;text-align: right;"></td>
         <td style="padding-left: 30px;">Plazo con tasa fija:</td>
-        <td><input name="nroCuotasFija" type="text" placeholder="Nro. Cuotas Tasa Fija" value="12"></td>
+        <td><input name="nroCuotasFija" type="text" placeholder="Nro. Cuotas Tasa Fija" value="72" style="width: 80px;text-align: right;"></td>
       </tr>
       <tr>
         <td>Fecha de desembolso:</td>
-        <td><input name="fechaDesembolso" type="text" placeholder="dd/MM/yyyy" value="27/04/2023"></td>
+        <td><input name="fechaDesembolso" type="text" placeholder="dd/MM/yyyy" value="16/05/2023" style="width: 80px;"></td>
         <td style="padding-left: 30px;">Paga el dia:</td>
-        <td><input name="diaPago" type="text" placeholder="Dia de pago" value="2"></td>
+        <td><input name="diaPago" type="text" placeholder="Dia de pago" value="10" style="width: 80px;text-align: right;"></td>
       </tr>
       <tr>
         <td>Interes fijo:</td>
-        <td><input name="interes1" type="text" placeholder="% de Interés fijo" value="15.99">%</td>
+        <td><input name="interes1" type="text" placeholder="% de Interés fijo" value="15.99" style="width: 80px;text-align: right;">%</td>
         <td style="padding-left: 30px;">Interes variable (TRE+...):</td>
-        <td><input name="interes2" type="text" placeholder="% de Interés variable" value="18.01">%</td>
+        <td><input name="interes2" type="text" placeholder="% de Interés variable" value="18.01" style="width: 80px;text-align: right;">%</td>
       </tr>
       <tr>
         <td>Seguro desgravamen:</td>
-        <td><input name="seguro" type="text" placeholder="% de seguro" value="1.5">%</td>
+        <td><input name="seguro" type="text" placeholder="% de seguro" value="1.5" style="width: 80px;text-align: right;">%</td>
         <td style="padding-left: 30px;">Seguro de sepelio (Bs):</td>
-        <td><input name="sepelio" type="text" placeholder="Bs mensual  " value="7"></td>
+        <td><input name="sepelio" type="text" placeholder="Bs mensual  " value="0" style="width: 80px;text-align: right;"></td>
       </tr>
       <tr>
         <td>Con conyuge:</td>
@@ -42,28 +42,28 @@
           <div>
             <input type="radio" id="conyugeChoice1" name="conyuge" value="1" checked />
             <label for="conyugeChoice1">No</label>
-
             <input type="radio" id="conyugeChoice2" name="conyuge" value="2" />
             <label for="conyugeChoice2">Si</label>
           </div>
         </td>
-      </tr>
-      <tr>
-        <td colspan="4">
-          <hr>
-        </td>
-      </tr>
-      <tr>
         <td></td>
+        <td></td>
+      </tr>
+    </table>
+    <hr>
+    <br>
+    <table style="margin-left: auto;margin-right: auto;">
+      <tr>
         <td>Monto (Bs)</td>
-        <td style="padding-left: 30px;"><input id="monto" name="monto" type="text" placeholder="Monto Solicitado" value="50000"></td>
-        <td><span id="resCuotaMax"></span></td>
+        <td style="padding-left: 30px;"><input id="monto" name="monto" type="text" placeholder="Monto Solicitado" value="50000" style="text-align: right;"></td>
+        <td><span id="resCuotaMax" style="padding-left: 10px;"></span></td>
+        <td><span id="resTeac" style="padding-left: 10px;"></span></td>
       </tr>
       <tr>
-        <td></td>
         <td>Cuota Max. (Bs)</td>
-        <td style="padding-left: 30px;"><input name="cuotaMax" type="text" placeholder="Monto de la cuota maxima" value=""></td>
-        <td><span id="resMonto"></span></td>
+        <td style="padding-left: 30px;"><input name="cuotaMax" type="text" placeholder="Monto de la cuota maxima" value="" style="text-align: right;"></td>
+        <td><span id="resMonto" style="padding-left: 10px;"></span></td>
+        <td><span id="resTea" style="padding-left: 10px;"></span></td>
       </tr>
       <tr>
         <td colspan="4" align="center">
@@ -78,7 +78,7 @@
 
   <script>
     const url = 'https://planpagostest.up.railway.app'; //
-    // const url = 'http://localhost:9090';
+    //const url = 'http://localhost:9090';
 
     const fromEl = document.querySelector('.form');
     fromEl.addEventListener('submit', event => {
@@ -102,18 +102,144 @@
         monto: datosEntrada.monto / 1,
         cuotaMax: datosEntrada.cuotaMax / 1
       };
-      // console.log('valor_dato_conyuge', valor_dato_conyuge);
-      // console.log('v_input', v_input);
 
       const datosParaWS = {
-        v_input //, p_param
+        v_input
       };
-      // console.log(datosParaWS);
 
       // Se limpian los datos en pantalla
+      document.getElementById('tablaPP').innerHTML = "";
       document.getElementById("resCuotaMax").textContent = '';
       document.getElementById("resMonto").textContent = '';
-      document.getElementById('tablaPP').innerHTML = "";
+      document.getElementById("resTeac").textContent = '';
+      document.getElementById("resTea").textContent = '';
+
+      // Función para traer los resultados
+      const obtenerPP = (conCuotaMax = 0) => {
+        fetch(url + '/api/plancompleto', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(datosParaWS)
+        }).then(res => {
+          // return res.json();
+          return;
+        }).then(data => {
+          // Cuotas del Plan de pagos
+          let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
+          data.planPago.forEach(e => {
+            tabla_datos += '<tr><td>' + e.cuota + '</td><td>' + e.fechaVenc + '</td><td>' + e.saldoCapital + '</td><td>' + e.capital + '</td><td>' + e.interes + '</td><td>' + e.capitalMasInt + '</td><td>' + e.seguro + '</td><td>' + e.cuotaFinal + '</td></tr>';
+          });
+          // Totales del Plan de pagos
+          const t = data.totales;
+          tabla_datos += '<tr><td>' + (!!t.cuota ? t.cuota : '') + '</td><td>' + (!!t.fechaVenc ? t.fechaVenc : '') + '</td><td>' + (!!t.saldoCapital ? t.saldoCapital : '') + '</td><td>' + t.capital + '</td><td>' + t.interes + '</td><td>' + t.capitalMasInt + '</td><td>' + t.seguro + '</td><td>' + t.cuotaFinal + '</td></tr>';
+          // Se despliega el plan de pagos
+          document.getElementById('tablaPP').innerHTML = "";
+          document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
+          // Cuota máxima
+          if (conCuotaMax == 1) {
+            document.getElementById("resCuotaMax").textContent = 'Cuota mayor: ' + data.cuotaMax;
+          }
+          // TEAC
+          document.getElementById("resTeac").textContent = 'TEAC: ' + (Math.round((data.teac * 100) * 1000) / 1000) + '%';
+          // TEA
+          document.getElementById("resTea").textContent = 'TEA: ' + (Math.round((data.tea * 100) * 1000) / 1000) + '%';
+        }).catch(error => {
+          // document.getElementById("resTeac").textContent = 'Error: ' + error;
+        });
+      };
+
+      /*
+      const obtenerPP = (conCuotaMax = 0) => {
+        // Se obtiene el plan de pagos
+        fetch(url + '/api/planpago', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datosParaWS)
+          }).then(res => {
+            return res.json();
+          })
+          .then(data => {
+            let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
+            data.planPago.forEach(e => {
+              tabla_datos += '<tr><td>' + e.cuota + '</td><td>' + e.fechaVenc + '</td><td>' + e.saldoCapital + '</td><td>' + e.capital + '</td><td>' + e.interes + '</td><td>' + e.capitalMasInt + '</td><td>' + e.seguro + '</td><td>' + e.cuotaFinal + '</td></tr>';
+            });
+
+            // Se obtiene los Totales
+            fetch(url + '/api/planpagototales', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(datosParaWS)
+            }).then(res => {
+              return res.json();
+            }).then(data => {
+              const t = data.totales;
+              // tabla_datos += '<tr><td>' + t.cuota + '</td><td>' + t.fechaVenc + '</td><td>' + t.saldoCapital + '</td><td>' + t.capital + '</td><td>' + t.interes + '</td><td>' + t.capitalMasInt + '</td><td>' + t.seguro + '</td><td>' + t.cuotaFinal + '</td></tr>';
+              tabla_datos += '<tr><td>' + (!!t.cuota ? t.cuota : '') + '</td><td>' + (!!t.fechaVenc ? t.fechaVenc : '') + '</td><td>' + (!!t.saldoCapital ? t.saldoCapital : '') + '</td><td>' + t.capital + '</td><td>' + t.interes + '</td><td>' + t.capitalMasInt + '</td><td>' + t.seguro + '</td><td>' + t.cuotaFinal + '</td></tr>';
+
+              document.getElementById('tablaPP').innerHTML = "";
+              document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
+            }).catch(error => {
+              // document.getElementById("resTeac").textContent = 'Error: ' + error;
+            });
+          })
+          .catch(error => {
+            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
+          });
+
+        if (conCuotaMax == 1) {
+          //Se obtiene la cuota máxima se genera el plan de pagos con el monto
+          fetch(url + '/api/cuotamayor', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(datosParaWS)
+          }).then(res => {
+            return res.json();
+          }).then(data => {
+            document.getElementById("resCuotaMax").textContent = 'Cuota mayor: ' + data.cuotaMax;
+          }).catch(error => {
+            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
+          });
+        }
+
+        // Se obtiene la TEAC
+        fetch(url + '/api/teac', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(datosParaWS)
+        }).then(res => {
+          return res.json();
+        }).then(data => {
+          document.getElementById("resTeac").textContent = 'TEAC: ' + (Math.round((data.teac * 100) * 1000) / 1000) + '%';
+        }).catch(error => {
+          document.getElementById("resTeac").textContent = 'Error: ' + error;
+        });
+
+        // Se obtiene la TEA
+        fetch(url + '/api/tea', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(datosParaWS)
+        }).then(res => {
+          return res.json();
+        }).then(data => {
+          document.getElementById("resTea").textContent = 'TEA: ' + (Math.round((data.tea * 100) * 1000) / 1000) + '%';
+        }).catch(error => {
+          document.getElementById("resTea").textContent = 'Error: ' + error;
+        });
+      };
+      */
 
       // Si se tiene una cuota máxima se genera el monto sugerido
       if (datosParaWS.v_input.cuotaMax > 0) {
@@ -130,73 +256,15 @@
             document.getElementById("resMonto").textContent = 'Monto sugerido: ' + data.monto;
             document.getElementById('monto').value = data.monto;
             datosParaWS.v_input.monto = data.monto;
-
-            // Se obtiene el plan de pagos
-            fetch(url + '/api/planpago', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(datosParaWS)
-              }).then(res => {
-                return res.json();
-              })
-              .then(data => {
-                let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
-                data.planPago.forEach(e => {
-                  tabla_datos += '<tr><td>' + e.cuota + '</td><td>' + e.fechaVenc + '</td><td>' + e.saldoCapital + '</td><td>' + e.capital + '</td><td>' + e.interes + '</td><td>' + e.capitalMasInt + '</td><td>' + e.seguro + '</td><td>' + e.cuotaFinal + '</td></tr>';
-                });
-                document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
-              })
-              .catch(error => {
-                // console.log(error);
-                document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
-              });
+            obtenerPP();
           })
           .catch(error => {
             document.getElementById("resMonto").textContent = 'Error: ' + error;
           });
       } else if (datosParaWS.v_input.monto > 0) {
-        //Si no se tiene una cuota máxima se genera el plan de pagos con el monto
-        // Se obtiene la cuota más alta
-        fetch(url + '/api/cuotamayor', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(datosParaWS)
-          }).then(res => {
-            return res.json();
-          })
-          .then(data => {
-            document.getElementById("resCuotaMax").textContent = 'Cuota mayor: ' + data.cuotaMax;
-          })
-          .catch(error => {
-            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
-          });
-
-        // Se obtiene el plan de pagos
-        fetch(url + '/api/planpago', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(datosParaWS)
-          }).then(res => {
-            return res.json();
-          })
-          .then(data => {
-            let tabla_datos = '<tr><th>Cuota</th><th>Fecha Venc.</th><th>Saldo Capital</th><th>Capital</th><th>Interes</th><th>Capital+Interes</th><th>Seguros</th><th>Cuota Final</th></tr>';
-            data.planPago.forEach(e => {
-              tabla_datos += '<tr><td>' + e.cuota + '</td><td>' + e.fechaVenc + '</td><td>' + e.saldoCapital + '</td><td>' + e.capital + '</td><td>' + e.interes + '</td><td>' + e.capitalMasInt + '</td><td>' + e.seguro + '</td><td>' + e.cuotaFinal + '</td></tr>';
-            });
-            document.getElementById('tablaPP').insertAdjacentHTML('beforeend', tabla_datos);
-          })
-          .catch(error => {
-            // console.log(error);
-            document.getElementById("resCuotaMax").textContent = 'Error: ' + error;
-          });
+        obtenerPP(conCuotaMax = 1);
       }
+
     });
   </script>
 </body>

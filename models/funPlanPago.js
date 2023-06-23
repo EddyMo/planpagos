@@ -312,11 +312,8 @@ const construccionCuotaTransicion = (v_nroCuotaTransicion, v_numCuotasTotal, v_d
 };
 
 
-// ------------- Generacion del plan de pagos -------------
-const generaPlanPagos = (
-    //v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro, v_monto,
-    v_input, p_param
-) => {
+// ------------- *** Generacion del plan de pagos -------------
+const generaPlanPagos = (v_input, p_param) => {
     // console.log('p_param en generaPlanPagos', p_param);
     v_numCuotas = v_input.numCuotas;
     v_nroCuotasFija = v_input.nroCuotasFija;
@@ -352,14 +349,13 @@ const generaPlanPagos = (
             cuotaFinal: v_pp[i][6]
         });
     }
-    // Adicion de totales
-    const v_totales = totalesPlanPagos(v_pp);
-    res_array.push(v_totales);
+    // // Adicion de totales
+    // const v_totales = totalesPlanPagos_base(v_pp);
+    // res_array.push(v_totales);
 
     return JSON.parse(JSON.stringify({ planPago: res_array }));
 
 };
-
 const generaPlanPagos_base = (
     v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
     v_monto, v_param
@@ -446,10 +442,23 @@ const generaPlanPagos_base = (
     return resultado;
 };
 
-const identificarCuotaMasAlta = (
-    //v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro, v_monto, 
-    v_input, p_param) => {
-    // console.log('p_param en identificarCuotaMasAlta', p_param);
+// ------------- Identificación de la cuota más alta (para funciones internas) -------------
+const cuotaMasAlta = (v_monto, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+    v_param
+) => {
+    p_fechaIni = new Date(v_param.fechaIni.valueOf()); // v_fechaIni.valueOf()
+    const pp = generaPlanPagos_base(
+        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+        v_monto, v_param
+    );
+    const cuo = identificarCuotaMasAlta_base(pp);
+
+    return cuo;
+};
+
+// ------------- *** Identificación de la cuota más alta (para consulta directa) -------------
+const identificarCuotaMasAlta = (v_input, p_param) => {
+
     v_numCuotas = v_input.numCuotas;
     v_nroCuotasFija = v_input.nroCuotasFija;
     v_fechaDesembolso = v_input.fechaDesembolso;
@@ -471,8 +480,6 @@ const identificarCuotaMasAlta = (
 
     // Con el plan de pagos se identifica la cuota más alta
     const resultado = identificarCuotaMasAlta_base(v_pp);
-
-    // return { cuotaMax: resultado };
     return JSON.parse(JSON.stringify({ cuotaMax: resultado }));
 };
 const identificarCuotaMasAlta_base = (v_pp) => {
@@ -485,20 +492,32 @@ const identificarCuotaMasAlta_base = (v_pp) => {
     return resultado;
 };
 
-const cuotaMasAlta = (v_monto, v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
-    v_param
-) => {
-    p_fechaIni = new Date(v_param.fechaIni.valueOf()); // v_fechaIni.valueOf()
-    const pp = generaPlanPagos_base(
+// ------------- *** Identificación de los totales (para consulta directa) -------------
+const identificarTotalesPlanPagos = (v_input, p_param) => {
+    v_numCuotas = v_input.numCuotas;
+    v_nroCuotasFija = v_input.nroCuotasFija;
+    v_fechaDesembolso = v_input.fechaDesembolso;
+    v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    v_sepelio = v_input.sepelio;
+    v_monto = v_input.monto;
+
+    // Parámetros
+    const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
+
+    // Llamada a la función base para generar el plan de pagos
+    const v_pp = generaPlanPagos_base(
         v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
         v_monto, v_param
-        //p_fechaIni, v_fechaRevTasa, v_feriados, v_param //v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
+        //_fechaIni, v_fechaRevTasa, v_feriados, v_limiteIteraciones, v_binCuota_precision, v_binCuota_porcentIntervalo
     );
-    const cuo = identificarCuotaMasAlta_base(pp);
-    return cuo;
+    const resultado = totalesPlanPagos_base(v_pp);
+    return JSON.parse(JSON.stringify({ totales: resultado }));
 };
-
-const totalesPlanPagos = (v_pp) => {
+// Auxiliar: Cálculo de Totales del plan de pagos
+const totalesPlanPagos_base = (v_pp) => {
     // Variables de datos acumulados
     let acum_capital = 0;
     let acum_interes = 0;
@@ -514,9 +533,12 @@ const totalesPlanPagos = (v_pp) => {
         acum_cuotaFinal += v_pp[i][6];
     }
     const resultado = {
-        cuota: '',
-        fechaVenc: '',
-        saldoCapital: '',
+        // cuota: '',
+        // fechaVenc: '',
+        // saldoCapital: '',
+        // cuota: null,
+        // fechaVenc: null,
+        // saldoCapital: null,
         capital: Math.round(acum_capital * 100) / 100,
         interes: Math.round(acum_interes * 100) / 100,
         capitalMasInt: Math.round(acum_capitalMasInt * 100) / 100,
@@ -526,10 +548,8 @@ const totalesPlanPagos = (v_pp) => {
     return resultado;
 };
 
-const buscarMontoPorCuota = (
-    //v_numCuotas, v_nroCuotasFija, v_fechaDesembolso, v_diaPago, v_interes1, v_interes2, v_seguro, v_cuotaMax, 
-    v_input, p_param
-) => {
+// -------------  *** Búsqueda del monto más alto según la cuota -------------
+const buscarMontoPorCuota = (v_input, p_param) => {
     // console.log('p_param en buscarMontoPorCuota', p_param);
     v_numCuotas = v_input.numCuotas;
     v_nroCuotasFija = v_input.nroCuotasFija;
@@ -540,13 +560,6 @@ const buscarMontoPorCuota = (
     v_seguro = v_input.seguro;
     v_sepelio = v_input.sepelio;
     v_cuotaMax = v_input.cuotaMax;
-
-    // feriados: v_param.feriados,
-    //     limiteIteraciones: v_param.limiteIteraciones,
-    //     binCuota_precision: v_param.binCuota_precision,
-    //     binCuota_porcentIntervalo: v_param.binCuota_porcentIntervalo,
-    //     binMonto_presicion: v_param.binMonto_presicion,
-    //     binMonto_porcentIntervalo: v_param.binMonto_porcentIntervalo
 
     // Parámetros
     const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
@@ -615,8 +628,211 @@ const buscarMontoPorCuota = (
     return JSON.parse(JSON.stringify({ monto: v_monto_dec }));
 };
 
+// -------------  *** Identificación de la TEAC (para consulta directa) -------------
+const identificarTeac = (v_input, p_param) => {
+    v_numCuotas = v_input.numCuotas;
+    v_nroCuotasFija = v_input.nroCuotasFija;
+    v_fechaDesembolso = v_input.fechaDesembolso;
+    v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    v_sepelio = v_input.sepelio;
+    v_monto = v_input.monto;
+
+    // Parámetros
+    const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
+
+    p_fechaIni = new Date(v_param.fechaIni.valueOf());
+    const pp = generaPlanPagos_base(
+        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+        v_monto, v_param
+    );
+    const resultado = teacPlanPagos(pp, v_monto, v_interes1, v_seguro, v_sepelio, v_param.limiteIteraciones);
+    return JSON.parse(JSON.stringify({ teac: resultado }));
+};
+const teacPlanPagos = (v_pp, v_monto, v_interes1, v_seguro, v_sepelio, v_limiteIteraciones) => {
+    let resultado = 0;
+    // Se continua si existe el plan de pagos
+    if (v_pp.length > 0) {
+        // Se determina el monto ajustado
+        const v_numDias_0 = v_pp[0][0];
+        const v_monto_ajustado = v_numDias_0 > 0 ? v_monto - (Math.round(v_numDias_0 * (v_seguro / 360) * v_monto * 100) / 100) - v_sepelio : v_monto;
+        // console.log('v_monto_ajustado', v_monto_ajustado);
+
+        // Se agregan los factores "t" y "f" al plan de pagos
+        const v_ppf = teacAgregarFactores(v_pp);
+
+        // Se determina la tasa baja
+        let v_tasa_ini = Math.round(v_interes1 * 10000000) / 10000000;
+        let v_total_ini = teacTotalVPPagos(v_ppf, v_tasa_ini); //0.1753806
+        if (v_total_ini < v_monto_ajustado) {
+            v_tasa_ini = 0.01;
+            v_total_ini = teacTotalVPPagos(v_ppf, v_tasa_ini);
+        }
+        // console.log('v_tasa_ini', v_tasa_ini, 'v_total_ini', v_total_ini);
+
+        // Se determina la tasa alta
+        let v_tasa_fin = Math.round((v_interes1 + 0.1) * 1000000) / 1000000;
+        let v_total_fin = teacTotalVPPagos(v_ppf, v_tasa_fin);
+        if (v_total_fin > v_monto_ajustado) {
+            let multiplicador = 2;
+            while (multiplicador <= 20 & v_total_fin > v_monto_ajustado) {
+                v_tasa_fin = Math.round((v_interes1 + (multiplicador * 0.1)) * 1000000) / 1000000;
+                v_total_fin = teacTotalVPPagos(v_ppf, v_tasa_fin);
+                multiplicador = multiplicador + 1;
+            }
+        }
+        // console.log('v_tasa_fin', v_tasa_fin, 'v_total_fin', v_total_fin);
+
+
+        // Búsqueda binaria de la Teac
+        let numIter = 0;
+        let v_tasa_eval = Math.round((v_tasa_ini + ((v_tasa_fin - v_tasa_ini) / 2)) * 10000000) / 10000000;
+        let v_total_eval = teacTotalVPPagos(v_ppf, v_tasa_eval);
+        let v_tasa_eval_anterior = 0;
+        while (Math.abs(v_total_eval - v_monto_ajustado) > 0.00001 & numIter < v_limiteIteraciones) {
+            if (v_total_eval <= v_monto_ajustado) {
+                v_tasa_fin = v_tasa_eval;
+                v_total_fin = v_total_eval;
+            } else {
+                v_tasa_ini = v_tasa_eval;
+                v_total_ini = v_total_eval;
+            }
+            v_tasa_eval = Math.round((v_tasa_ini + ((v_tasa_fin - v_tasa_ini) / 2)) * 10000000) / 10000000;
+            v_total_eval = teacTotalVPPagos(v_ppf, v_tasa_eval);
+            numIter = numIter + 1;
+            // console.log((numIter + 1), '- total_ini:', v_total_ini, 'total_eval:', v_total_eval, 'total_fin:', v_total_fin, ' ; tasa_ini', v_tasa_ini, 'tasa_eval', v_tasa_eval, 'tasa_fin', v_tasa_fin);
+            if (v_tasa_eval == v_tasa_eval_anterior) { break; } else { v_tasa_eval_anterior = v_tasa_eval; }
+        }
+        //console.log('v_tasa_eval', v_tasa_eval, 'v_total_eval', v_total_eval);
+        resultado = v_tasa_eval;
+    }
+    return Math.trunc(resultado * 100000) / 100000;
+}
+const teacAgregarFactores = (v_pp) => {
+    let resultado = [];
+    let v_dias_acum = 0;
+    for (i = 0; i < v_pp.length; i++) {
+        const numDiasHastaPeriodo = v_pp[i][0] + v_dias_acum;
+        const v_t = Math.trunc(numDiasHastaPeriodo / 30);
+        const v_f = (numDiasHastaPeriodo / 30) - Math.trunc(numDiasHastaPeriodo / 30);
+        resultado.push(v_pp[i].concat(v_t).concat(v_f));
+        // console.log('cuota', (i + 1), ':', v_pp[i].concat(v_t).concat(v_f));
+        v_dias_acum = v_dias_acum + v_pp[i][0];
+    }
+    return resultado;
+}
+const teacTotalVPPagos = (v_ppf, v_teac) => {
+    const v_i = v_teac / 12;
+    let resultado = 0;
+    for (i = 0; i < v_ppf.length; i++) {
+        const v_cuotaTotal = v_ppf[i][6];
+        const v_t = v_ppf[i][8];
+        const v_f = v_ppf[i][9];
+        const v_cuota_calc = v_cuotaTotal / ((1 + (v_f * v_i)) * (Math.pow(1 + v_i, v_t)));
+        // console.log('cuota', (i + 1), v_cuota_calc);
+        resultado = resultado + v_cuota_calc;
+    }
+    return Math.round(resultado * 1000000) / 1000000;
+}
+
+// -------------  *** Identificación de la TEA (para consulta directa) -------------
+const identificarTea = (v_input, p_param) => {
+    // v_numCuotas = v_input.numCuotas;
+    // v_nroCuotasFija = v_input.nroCuotasFija;
+    // v_fechaDesembolso = v_input.fechaDesembolso;
+    // v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    // v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    // v_sepelio = v_input.sepelio;
+    // v_monto = v_input.monto;
+    const resultado = tea_base(v_interes1, v_seguro);
+
+    // const aux = generaPlanCompleto(v_input, p_param);
+    // console.log('resultadoCompleto', aux);
+
+    return JSON.parse(JSON.stringify({ tea: resultado }));
+};
+
+const tea_base = (v_interes1, v_seguro) => {
+    const v_ppi = 30;
+    const v_i = v_interes1;
+    const v_c = v_seguro;
+    const v_or = 0;
+
+    const resultado_base = (Math.pow((1 + ((v_i + v_c) * (v_ppi / 360))), (360 / v_ppi)) / (1 - v_or)) - 1;
+    const resultado = Math.round(resultado_base * 100000) / 100000;
+    return resultado;
+};
+
+
+// -------------  *** Generación de todos los datos del plan de pago -------------
+const generaPlanCompleto = (v_input, p_param) => {
+    v_numCuotas = v_input.numCuotas;
+    v_nroCuotasFija = v_input.nroCuotasFija;
+    v_fechaDesembolso = v_input.fechaDesembolso;
+    v_diaPago = v_input.diaPago;
+    v_interes1 = v_input.interes1;
+    v_interes2 = v_input.interes2;
+    v_seguro = v_input.seguro;
+    v_sepelio = v_input.sepelio;
+    v_monto = v_input.monto;
+
+    // Parámetros
+    const v_param = generaParametros(p_param, v_fechaDesembolso, v_nroCuotasFija);
+
+    // Generación del plan de pagos
+    const v_pp = generaPlanPagos_base(
+        v_numCuotas, v_nroCuotasFija, v_diaPago, v_interes1, v_interes2, v_seguro, v_sepelio,
+        v_monto, v_param
+    );
+
+    // conversión del plan de pagos en un objeto Json
+    let res_planPago = [];
+    for (i = 0; i < v_pp.length; i++) {
+        res_planPago.push({
+            cuota: i + 1,
+            fechaVenc: v_pp[i][7].toLocaleDateString('en-GB'),
+            saldoCapital: v_pp[i][3],
+            capital: v_pp[i][2],
+            interes: v_pp[i][1],
+            capitalMasInt: Math.round((v_pp[i][2] + v_pp[i][1]) * 100) / 100,
+            seguro: v_pp[i][5],
+            cuotaFinal: v_pp[i][6]
+        });
+    }
+
+    // Generación de totales
+    const res_totales = totalesPlanPagos_base(v_pp);
+
+    // Identificación de la cuota más alta
+    const res_cuotaMax = identificarCuotaMasAlta_base(v_pp);
+
+    // Identificación de la TEAC
+    const res_teac = teacPlanPagos(v_pp, v_monto, v_interes1, v_seguro, v_sepelio, v_param.limiteIteraciones);
+
+    // Identificación de la TEA
+    const res_tea = tea_base(v_interes1, v_seguro);
+
+    return JSON.parse(JSON.stringify({
+        planPago: res_planPago,
+        totales: res_totales,
+        cuotaMax: res_cuotaMax,
+        teac: res_teac,
+        tea: res_tea
+    }));
+};
+
+
 module.exports = {
+    buscarMontoPorCuota,
+    generaPlanCompleto,
+
     generaPlanPagos,
+    identificarTotalesPlanPagos,
     identificarCuotaMasAlta,
-    buscarMontoPorCuota
+    identificarTeac,
+    identificarTea
 };
